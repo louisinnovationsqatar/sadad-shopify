@@ -1,0 +1,179 @@
+{%- comment -%}
+  SADAD Shopify Integration — Express Server
+  Built by Louis Innovations (www.louis-innovations.com)
+
+  payment-form.liquid
+  -------------------
+  Renders the SADAD payment form inline (without JavaScript redirect).
+  Use this when you want a visible form rather than a JS-initiated POST.
+
+  Usage:
+    {% render 'payment-form',
+       action_url: sadad_checkout_url,
+       form_fields: sadad_form_fields %}
+
+  Parameters:
+    action_url   — The SADAD checkout endpoint URL (provided by your server)
+    form_fields  — A hash / object of hidden form field name=>value pairs
+
+  Alternatively this template can be used as a standalone page in
+  /templates/page.sadad-payment.liquid and served by Shopify for a
+  seamless redirect experience.
+{%- endcomment -%}
+
+<!doctype html>
+<html lang="{{ shop.locale }}" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>{{ 'sadad.redirect_title' | t | default: 'Redirecting to SADAD Secure Payment' }}</title>
+
+  {{ content_for_header }}
+
+  <style>
+    *,*::before,*::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .sadad-redirect {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      max-width: 420px;
+      width: 90%;
+    }
+    .sadad-redirect__logo {
+      max-width: 160px;
+      margin-bottom: 1.5rem;
+    }
+    .sadad-redirect__title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0 0 0.5rem;
+    }
+    .sadad-redirect__subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin: 0 0 2rem;
+    }
+    .sadad-redirect__spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #1a1a2e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    .sadad-redirect__amount {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 1.5rem;
+    }
+    .sadad-redirect__secure-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #4caf50;
+      background: #f1f8e9;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      margin-top: 1rem;
+    }
+    .sadad-redirect__manual-link {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: #999;
+    }
+    .sadad-redirect__manual-link a {
+      color: #555;
+      text-decoration: underline;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="sadad-redirect">
+    {%- if settings.sadad_logo -%}
+      <img
+        src="{{ settings.sadad_logo | img_url: '160x' }}"
+        alt="{{ shop.name }} — SADAD Payment"
+        class="sadad-redirect__logo"
+      />
+    {%- endif -%}
+
+    <div class="sadad-redirect__spinner" role="status" aria-label="Loading"></div>
+
+    <h1 class="sadad-redirect__title">
+      {{ 'sadad.redirect_heading' | t | default: 'Redirecting to SADAD' }}
+    </h1>
+    <p class="sadad-redirect__subtitle">
+      {{ 'sadad.redirect_subtitle' | t | default: 'You are being redirected to the SADAD secure payment gateway.' }}
+    </p>
+
+    {%- if order -%}
+      <div class="sadad-redirect__amount">
+        {{ order.total_price | money }}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} The actual payment form — auto-submitted by JS below {%- endcomment -%}
+    <form
+      id="sadad-payment-form"
+      method="POST"
+      action="{{ action_url }}"
+      style="display:none;"
+    >
+      {%- for field in form_fields -%}
+        <input type="hidden" name="{{ field[0] | escape }}" value="{{ field[1] | escape }}" />
+      {%- endfor -%}
+    </form>
+
+    <div class="sadad-redirect__secure-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+      </svg>
+      {{ 'sadad.secure_badge' | t | default: 'Secured by SADAD' }}
+    </div>
+
+    <div class="sadad-redirect__manual-link">
+      {{ 'sadad.redirect_not_redirected' | t | default: 'Not redirecting?' }}
+      <a href="#" id="sadad-manual-submit">
+        {{ 'sadad.redirect_click_here' | t | default: 'Click here' }}
+      </a>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    var form = document.getElementById('sadad-payment-form');
+    var manualLink = document.getElementById('sadad-manual-submit');
+
+    if (form) {
+      // Auto-submit after a short delay so the spinner is visible
+      setTimeout(function () { form.submit(); }, 800);
+    }
+
+    if (manualLink && form) {
+      manualLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        form.submit();
+      });
+    }
+  }());
+  </script>
+</body>
+</html>

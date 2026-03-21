@@ -1,0 +1,194 @@
+{%- comment -%}
+  SADAD Shopify Integration — Express Server
+  Built by Louis Innovations (www.louis-innovations.com)
+
+  checkout-page.liquid
+  --------------------
+  Drop this snippet into your Shopify theme's checkout or payment pages
+  to add a "Pay with SADAD" button that initiates the payment flow.
+
+  Usage:
+    {% render 'checkout-page', order: order %}
+
+  Requirements:
+    - SADAD_SERVER_URL must be set in your theme's settings (Settings > Checkout > Additional scripts)
+      or hard-coded to your deployed server URL.
+    - The snippet reads cart/order data and posts it to your SADAD Express server.
+{%- endcomment -%}
+
+{% assign sadad_server_url = settings.sadad_server_url | default: 'https://your-sadad-server.example.com' %}
+
+<div class="sadad-payment-option" id="sadad-payment-option">
+  <div class="sadad-payment-option__header">
+    <img
+      src="{{ 'sadad-logo.png' | asset_url }}"
+      alt="SADAD Payment"
+      class="sadad-payment-option__logo"
+      width="120"
+      height="40"
+    />
+    <span class="sadad-payment-option__title">Pay with SADAD</span>
+  </div>
+
+  <p class="sadad-payment-option__description">
+    Secure payment via SADAD Qatar. You will be redirected to the SADAD payment page.
+  </p>
+
+  <div class="sadad-payment-option__amount">
+    <span class="sadad-payment-option__label">Order total:</span>
+    <span class="sadad-payment-option__value">
+      {{ cart.total_price | money }}
+    </span>
+  </div>
+
+  <button
+    type="button"
+    id="sadad-pay-button"
+    class="btn sadad-payment-option__button"
+    data-order-id="{{ order.id }}"
+    data-sadad-url="{{ sadad_server_url }}"
+    aria-label="Pay {{ cart.total_price | money }} with SADAD"
+  >
+    <span class="sadad-payment-option__button-text">Pay with SADAD</span>
+    <span class="sadad-payment-option__button-spinner" aria-hidden="true" style="display:none;">
+      &bull;&bull;&bull;
+    </span>
+  </button>
+
+  <div class="sadad-payment-option__error" id="sadad-error" role="alert" style="display:none;">
+    Payment could not be initialised. Please try again or contact support.
+  </div>
+</div>
+
+{%- comment -%} Inline script — initiates SADAD checkout on button click {%- endcomment -%}
+<script>
+(function () {
+  'use strict';
+
+  var btn = document.getElementById('sadad-pay-button');
+  var errorBox = document.getElementById('sadad-error');
+
+  if (!btn) return;
+
+  btn.addEventListener('click', function () {
+    var orderId = btn.getAttribute('data-order-id');
+    var sadadUrl = btn.getAttribute('data-sadad-url');
+
+    if (!orderId || !sadadUrl) {
+      showError();
+      return;
+    }
+
+    setLoading(true);
+    hideError();
+
+    fetch(sadadUrl + '/sadad/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: orderId })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.error) {
+          console.error('[SADAD] Checkout error:', data.error);
+          showError();
+          setLoading(false);
+          return;
+        }
+
+        // Inject and submit the form returned by the server
+        var container = document.createElement('div');
+        container.innerHTML = data.form_html;
+        document.body.appendChild(container);
+      })
+      .catch(function (err) {
+        console.error('[SADAD] Network error:', err);
+        showError();
+        setLoading(false);
+      });
+  });
+
+  function setLoading(loading) {
+    btn.disabled = loading;
+    var text = btn.querySelector('.sadad-payment-option__button-text');
+    var spinner = btn.querySelector('.sadad-payment-option__button-spinner');
+    if (text) text.style.display = loading ? 'none' : '';
+    if (spinner) spinner.style.display = loading ? '' : 'none';
+  }
+
+  function showError() {
+    if (errorBox) errorBox.style.display = '';
+  }
+
+  function hideError() {
+    if (errorBox) errorBox.style.display = 'none';
+  }
+}());
+</script>
+
+<style>
+.sadad-payment-option {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  background: #fff;
+}
+
+.sadad-payment-option__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sadad-payment-option__title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.sadad-payment-option__description {
+  color: #666;
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+
+.sadad-payment-option__amount {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.sadad-payment-option__button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: #1a1a2e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sadad-payment-option__button:hover:not(:disabled) {
+  background: #16213e;
+}
+
+.sadad-payment-option__button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.sadad-payment-option__error {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff2f2;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
+  color: #c62828;
+  font-size: 0.875rem;
+}
+</style>

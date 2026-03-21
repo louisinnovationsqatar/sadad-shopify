@@ -1,0 +1,44 @@
+# SADAD Shopify Integration — Express Server
+# Built by Louis Innovations (www.louis-innovations.com)
+
+version: '3.9'
+
+services:
+  sadad-shopify:
+    build:
+      context: ..
+      dockerfile: sadad-shopify/Dockerfile
+    container_name: sadad-shopify
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  # Optional: nginx reverse proxy with SSL termination
+  # Uncomment and configure if deploying behind nginx
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: sadad-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+  #     - /etc/letsencrypt:/etc/letsencrypt:ro
+  #   depends_on:
+  #     - sadad-shopify

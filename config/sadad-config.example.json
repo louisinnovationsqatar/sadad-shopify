@@ -1,0 +1,32 @@
+{
+  "_comment": "SADAD Shopify Integration — Express Server. Built by Louis Innovations (www.louis-innovations.com)",
+  "_description": "Copy this file to sadad-config.json for local reference. Use .env for actual credentials.",
+
+  "server": {
+    "port": 3000,
+    "nodeEnv": "production"
+  },
+
+  "sadad": {
+    "merchantId": "1234567",
+    "secretKey": "your-sadad-secret-key-here",
+    "website": "YOURWEBSITE",
+    "environment": "test",
+    "language": "eng",
+    "checkoutVersion": "v1.1",
+    "callbackUrl": "https://your-sadad-server.example.com/sadad/callback",
+    "webhookUrl": "https://your-sadad-server.example.com/sadad/webhook"
+  },
+
+  "shopify": {
+    "storeDomain": "your-store.myshopify.com",
+    "adminAccessToken": "shpat_xxxxxxxxxxxxxxxxxxxx",
+    "apiVersion": "2024-10",
+    "webhookSecret": "your-shopify-webhook-secret"
+  },
+
+  "redirects": {
+    "successUrl": "https://your-store.myshopify.com/pages/payment-success",
+    "failureUrl": "https://your-store.myshopify.com/pages/payment-failure"
+  }
+}
